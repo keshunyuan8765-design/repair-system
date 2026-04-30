@@ -825,7 +825,10 @@ async function loadDashboard() {
     inventory = iData.rows || [];
 
     const lowStock = inventory.filter(i => Number(i.quantity) < Number(i.min_qty)).length;
-    const storeCount = machines.filter(m => isStoreStatus(m.status)).length;
+    const storeCount = new Set(
+      machines.filter(m => isStoreStatus(m.status) && m.store_no)
+        .map(m => String(m.store_no).trim())
+    ).size;
 
     document.getElementById('s-store').textContent = storeCount;
     document.getElementById('s-lowstock').textContent = lowStock;
