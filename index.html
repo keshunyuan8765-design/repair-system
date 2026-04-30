@@ -476,7 +476,9 @@
         </div>
         <div class="form-group">
           <label class="form-label">負責人</label>
-          <input class="form-control" id="new-owner" placeholder="姓名">
+          <select class="form-control" id="new-owner">
+            <option value="">請選擇</option>
+          </select>
         </div>
       </div>
       <div class="form-group">
@@ -509,6 +511,12 @@
       <!-- 推進步驟 -->
       <div id="advance-section" style="background:var(--green-light);border-radius:var(--radius);padding:14px 16px;margin-bottom:18px">
         <div style="font-size:13px;font-weight:600;color:var(--green-dark);margin-bottom:10px" id="advance-title">推進到下一步驟</div>
+        <div class="form-group" style="margin-bottom:10px">
+          <label class="form-label">操作人員</label>
+          <select class="form-control" id="advance-operator">
+            <option value="">請選擇</option>
+          </select>
+        </div>
         <div class="form-group" style="margin-bottom:10px">
           <label class="form-label">備註（本次操作）</label>
           <input class="form-control" id="advance-note" placeholder="填寫本步驟的操作備註">
@@ -663,6 +671,17 @@ async function loadSettings() {
         ).join('');
         typeFilterBar.innerHTML = `<div class="pill active" onclick="filterTypes('',this)">全部類型</div>${extra}`;
       }
+    }
+
+    // 填入人員選單
+    if (settings.operator) {
+      window._operators = settings.operator;
+      const opOptions = '<option value="">請選擇</option>' +
+        settings.operator.map(o => `<option>${o}</option>`).join('');
+      ['new-owner', 'advance-operator'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = opOptions;
+      });
     }
 
     // 填入狀態選單（新增機台用）& 篩選列
@@ -907,6 +926,12 @@ async function openDetail(sn) {
   document.getElementById('advance-title').textContent = '更新狀態';
   document.getElementById('advance-note').value = '';
   document.getElementById('advance-parts').value = '';
+  // 重新填入人員選單
+  if (window._operators) {
+    const opEl = document.getElementById('advance-operator');
+    if (opEl) opEl.innerHTML = '<option value="">請選擇</option>' +
+      window._operators.map(o => `<option>${o}</option>`).join('');
+  }
 
   // 動態產生狀態選單
   const existingStatusSel = document.getElementById('status-select-inline');
@@ -976,12 +1001,13 @@ async function submitAdvance() {
   btn.disabled = true; btn.textContent = '處理中...';
 
   try {
-    const storeNo = newStatus === 'STORE' ? (document.getElementById('store-no-inline').value || '') : '';
+    const storeNo = isStoreStatus(newStatus) ? (document.getElementById('store-no-inline').value || '') : '';
+    const operator = (document.getElementById('advance-operator') || {}).value || localStorage.getItem('user_email') || 'unknown';
     const res = await apiPost({
       action: 'updateRow', sheet: 'machines',
       key_col: 'sn', key_val: String(currentSN),
-      updates: { status: newStatus, repair_step: repairStep, store_no: storeNo, updated_by: localStorage.getItem('user_email') || 'unknown' },
-      log: { sn: String(currentSN), status: newStatus, note: '狀態更新：' + newStatus + (repairStep ? ' / ' + repairStep : '') + (note ? ' (' + note + ')' : ''), parts: parts }
+      updates: { status: newStatus, repair_step: repairStep, store_no: storeNo, updated_by: operator },
+      log: { sn: String(currentSN), status: newStatus, note: '狀態更新：' + newStatus + (repairStep ? ' / ' + repairStep : '') + (note ? ' (' + note + ')' : ''), parts: parts, operator: operator }
     });
     if (res.error) { toast(res.error, 'error'); return; }
     toast(`${currentSN} 狀態已更新為「${newStatus}」`, 'success');
@@ -1012,7 +1038,7 @@ async function submitAddMachine() {
         sn, type: document.getElementById('new-type').value,
         issue, status: newStatus,
         repair_step: isRepairStatus(newStatus) ? document.getElementById('new-repair-step').value : '',
-        owner: document.getElementById('new-owner').value,
+        owner: document.getElementById('new-owner').value || '—',
         batch: document.getElementById('new-batch').value,
         note: document.getElementById('new-note').value,
         created_by: localStorage.getItem('user_email') || 'unknown'
