@@ -540,12 +540,14 @@
           <button class="btn btn-sm" id="btn-edit-issue" onclick="toggleEditIssue()"
             style="padding:2px 8px;font-size:11px">編輯</button>
         </div>
-        <div style="font-size:13px;color:var(--text)" id="detail-issue"></div>
+        <div style="font-size:13px;color:var(--text);white-space:pre-wrap" id="detail-issue"></div>
         <div id="edit-issue-row" style="display:none;margin-top:8px">
           <div style="display:flex;gap:6px">
-            <input class="form-control" id="issue-input" style="font-size:13px">
-            <button class="btn btn-primary btn-sm" onclick="saveIssue()">儲存</button>
-            <button class="btn btn-sm" onclick="toggleEditIssue()">取消</button>
+            <textarea class="form-control" id="issue-input" style="font-size:13px;min-height:80px;resize:vertical"></textarea>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <button class="btn btn-primary btn-sm" onclick="saveIssue()">儲存</button>
+              <button class="btn btn-sm" onclick="toggleEditIssue()">取消</button>
+            </div>
           </div>
         </div>
       </div>
