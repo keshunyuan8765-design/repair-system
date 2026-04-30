@@ -505,7 +505,18 @@
     <div class="modal-header">
       <div>
         <div class="modal-title" id="detail-sn">機台詳情</div>
-        <div style="font-size:12px;color:var(--text3);margin-top:2px" id="detail-issue"></div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+          <div style="font-size:12px;color:var(--text3)" id="detail-issue"></div>
+          <button class="btn btn-sm" id="btn-edit-issue" onclick="toggleEditIssue()"
+            style="padding:2px 8px;font-size:11px">編輯</button>
+        </div>
+        <div id="edit-issue-row" style="display:none;margin-top:6px;display:none">
+          <div style="display:flex;gap:6px">
+            <input class="form-control" id="issue-input" style="font-size:13px">
+            <button class="btn btn-primary btn-sm" onclick="saveIssue()">儲存</button>
+            <button class="btn btn-sm" onclick="toggleEditIssue()">取消</button>
+          </div>
+        </div>
       </div>
       <button class="modal-close" onclick="closeModal('detail')">×</button>
     </div>
@@ -915,7 +926,12 @@ async function openDetail(sn) {
   const repairStepIdx = REPAIR_STEPS.indexOf(repairStep);
 
   document.getElementById('detail-sn').textContent = sn;
-  document.getElementById('detail-issue').textContent = m.issue;
+  document.getElementById('detail-issue').textContent = m.issue || '（無問題描述）';
+  const issueInput = document.getElementById('issue-input');
+  if (issueInput) issueInput.value = m.issue || '';
+  // 重置編輯狀態
+  const editRow = document.getElementById('edit-issue-row');
+  if (editRow) editRow.style.display = 'none';
 
   // 外層狀態流程
   const flow = document.getElementById('detail-step-flow');
@@ -1280,6 +1296,40 @@ function formatTime(ts) {
   // 轉台灣時間 UTC+8
   const tw = new Date(d.getTime() + 8 * 60 * 60 * 1000);
   return tw.toISOString().slice(0,16).replace('T',' ');
+}
+
+function toggleEditIssue() {
+  const row = document.getElementById('edit-issue-row');
+  const isHidden = row.style.display === 'none' || row.style.display === '';
+  row.style.display = isHidden ? 'block' : 'none';
+  if (isHidden) {
+    const m = machines.find(x => String(x.sn) === String(currentSN));
+    document.getElementById('issue-input').value = m ? (m.issue || '') : '';
+    document.getElementById('issue-input').focus();
+  }
+}
+
+async function saveIssue() {
+  const newIssue = document.getElementById('issue-input').value.trim();
+  const operator = (document.getElementById('advance-operator') || {}).value || 'unknown';
+  try {
+    const res = await apiPost({
+      action: 'updateRow', sheet: 'machines',
+      key_col: 'sn', key_val: String(currentSN),
+      updates: { issue: newIssue, updated_by: operator },
+      log: { sn: String(currentSN), status: '資料更新', note: '問題描述修改：' + newIssue, parts: '', operator }
+    });
+    if (res.error) { toast(res.error, 'error'); return; }
+    // 更新本地快取
+    const m = machines.find(x => String(x.sn) === String(currentSN));
+    if (m) m.issue = newIssue;
+    document.getElementById('detail-issue').textContent = newIssue || '（無問題描述）';
+    document.getElementById('edit-issue-row').style.display = 'none';
+    toast('問題描述已更新', 'success');
+    loadDashboard();
+  } catch(e) {
+    toast('更新失敗', 'error');
+  }
 }
 
 function toggleStoreField(rowId, val) {
