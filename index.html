@@ -826,24 +826,40 @@ async function loadDashboard() {
 
     const lowStock = inventory.filter(i => Number(i.quantity) < Number(i.min_qty)).length;
     const storeCount = new Set(
-      machines.filter(m => isStoreStatus(m.status) && m.store_no)
+      machines.filter(m => isStoreStatus(m.status) && m.store_no && /^\d+$/.test(String(m.store_no).trim()))
         .map(m => String(m.store_no).trim())
     ).size;
 
     document.getElementById('s-store').textContent = storeCount;
     document.getElementById('s-lowstock').textContent = lowStock;
 
-    // 各狀態數量
-    const byStatus = dash.byStatus || {};
-    const statuses = window._statuses || Object.keys(byStatus);
+    // 各狀態數量（按類型分組）
+    const statuses = window._statuses || Object.keys(dash.byStatus || {});
+    const types = window._types || [...new Set(machines.map(m => m.type).filter(Boolean))];
     const countsEl = document.getElementById('status-counts');
     if (countsEl) {
-      countsEl.innerHTML = statuses.map(s => {
-        const count = byStatus[s] || 0;
-        const badgeCls = STATUS_BADGE[s] || 'badge-ok';
-        return `<div style="display:flex;align-items:center;gap:8px;background:var(--bg);border-radius:var(--radius);padding:8px 14px;min-width:140px">
-          <span class="badge ${badgeCls}">${s}</span>
-          <span style="font-size:20px;font-weight:700">${count}</span>
+      countsEl.innerHTML = types.map(t => {
+        const typeMachines = machines.filter(m => m.type === t);
+        const byStatusForType = {};
+        typeMachines.forEach(m => {
+          const s = m.status || '未知';
+          byStatusForType[s] = (byStatusForType[s] || 0) + 1;
+        });
+        const statusItems = statuses.map(s => {
+          const count = byStatusForType[s] || 0;
+          if (count === 0) return '';
+          const badgeCls = STATUS_BADGE[s] || 'badge-ok';
+          return `<div style="display:flex;align-items:center;gap:6px;background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:6px 12px">
+            <span class="badge ${badgeCls}">${s}</span>
+            <span style="font-size:18px;font-weight:700">${count}</span>
+          </div>`;
+        }).filter(Boolean).join('');
+        return `<div style="margin-bottom:14px">
+          <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.4px">
+            <span class="badge badge-type">${t}</span>
+            <span style="margin-left:8px;color:var(--text3)">共 ${typeMachines.length} 台</span>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px">${statusItems}</div>
         </div>`;
       }).join('');
     }
