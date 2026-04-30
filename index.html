@@ -849,7 +849,7 @@ function renderMachineRows(tbodyId, list, showBatch = false) {
       <td><span class="badge badge-type">${m.type}</span></td>
       <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.issue}</td>
       <td><span class="badge ${badgeCls}">${status}</span>${isRepairStatus(status) && repairStep ? `<span style="font-size:11px;color:var(--text3);margin-left:6px">${repairStep}</span>` : ''}${isStoreStatus(status) && m.store_no ? `<span style="font-size:11px;color:var(--text3);margin-left:6px">${m.store_no}</span>` : ''}</td>
-      <td style="color:var(--text3);font-size:12px">${(m.updated_at || m.created_at || '').slice(0,16).replace('T',' ')}</td>
+      <td style="color:var(--text3);font-size:12px">${formatTime(m.updated_at || m.created_at)}</td>
       <td>${m.updated_by || m.owner || '—'}</td>
       ${showBatch ? `<td style="color:var(--text3);font-size:12px">${m.batch}</td>` : ''}
       <td><button class="btn btn-sm" onclick="event.stopPropagation();openDetail('${m.sn}')">詳情</button></td>
@@ -1110,7 +1110,7 @@ async function loadLogs() {
             <div class="log-avatar">${(l.operator||'?').slice(0,2).toUpperCase()}</div>
             ${l.operator}
           </div></td>
-          <td style="color:var(--text3);font-size:12px">${l.timestamp}</td>
+          <td style="color:var(--text3);font-size:12px">${formatTime(l.timestamp)}</td>
         </tr>`).join('')
       : `<tr><td colspan="6"><div class="empty-state">尚無記錄</div></td></tr>`;
   } catch (e) {
@@ -1218,6 +1218,15 @@ function openInvAdjustFor(name, module, category, spec) {
     if (modEl)  { Array.from(modEl.options).forEach(o => o.selected = o.value === module); }
     if (catEl)  { Array.from(catEl.options).forEach(o => o.selected = o.value === category); }
   }, 100);
+}
+
+function formatTime(ts) {
+  if (!ts) return '—';
+  const d = new Date(ts);
+  if (isNaN(d)) return String(ts).slice(0,16).replace('T',' ');
+  // 轉台灣時間 UTC+8
+  const tw = new Date(d.getTime() + 8 * 60 * 60 * 1000);
+  return tw.toISOString().slice(0,16).replace('T',' ');
 }
 
 function toggleStoreField(rowId, val) {
