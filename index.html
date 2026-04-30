@@ -1081,14 +1081,14 @@ async function openDetail(sn) {
   const logs = logData.rows || [];
   const logsHtml = logs.length
     ? logs.map(l => `<tr>
-        <td><span class="badge badge-${l.step}">${l.step}</span></td>
+        <td><span class="badge badge-${l.status||l.step}">${l.status||l.step||'—'}</span></td>
         <td>${l.note || '—'}</td>
         <td style="color:var(--text3)">${l.parts || '—'}</td>
         <td><div class="log-operator">
           <div class="log-avatar">${(l.operator||'?').slice(0,2).toUpperCase()}</div>
-          ${l.operator}
+          ${l.operator||'—'}
         </div></td>
-        <td style="color:var(--text3);font-size:12px">${l.timestamp}</td>
+        <td style="color:var(--text3);font-size:12px">${formatTime(l.timestamp)}</td>
       </tr>`).join('')
     : `<tr><td colspan="5"><div class="empty-state">尚無記錄</div></td></tr>`;
   document.getElementById('detail-log-tbody').innerHTML = logsHtml;
@@ -1186,7 +1186,7 @@ async function loadInventory() {
             <div class="log-avatar">${(l.operator||'?').slice(0,2).toUpperCase()}</div>
             ${l.operator}
           </div></td>
-          <td style="color:var(--text3);font-size:12px">${(l.timestamp||'').slice(0,16).replace('T',' ')}</td>
+          <td style="color:var(--text3);font-size:12px">${formatTime(l.timestamp)}</td>
         </tr>`).join('')
       : `<tr><td colspan="7"><div class="empty-state">尚無異動記錄</div></td></tr>`;
 
