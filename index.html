@@ -1049,7 +1049,8 @@ async function submitAdvance() {
 
   try {
     const storeNo = isStoreStatus(newStatus) ? (document.getElementById('store-no-inline').value || '') : '';
-    const operator = (document.getElementById('advance-operator') || {}).value || localStorage.getItem('user_email') || 'unknown';
+    const operator = (document.getElementById('advance-operator') || {}).value || '';
+    if (!operator) { toast('請選擇操作人員', 'error'); return; }
     const res = await apiPost({
       action: 'updateRow', sheet: 'machines',
       key_col: 'sn', key_val: String(currentSN),
@@ -1315,7 +1316,8 @@ function toggleEditIssue() {
 
 async function saveIssue() {
   const newIssue = document.getElementById('issue-input').value.trim();
-  const operator = (document.getElementById('advance-operator') || {}).value || 'unknown';
+  const operator = (document.getElementById('advance-operator') || {}).value || '';
+  if (!operator) { toast('請先選擇操作人員', 'error'); return; }
   try {
     const res = await apiPost({
       action: 'updateRow', sheet: 'machines',
