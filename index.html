@@ -344,8 +344,8 @@
           <table>
             <thead>
               <tr>
-                <th>機台 SN</th><th>類型</th><th>問題描述</th>
-                <th>狀態</th><th>最後修改時間</th><th>最後更新者</th><th>操作</th>
+                <th>機台 SN</th><th>類型</th><th>狀態</th><th>問題描述</th>
+                <th>最後修改時間</th><th>最後更新者</th><th>操作</th>
               </tr>
             </thead>
             <tbody id="dash-tbody"><tr><td colspan="7"><div class="loading"><div class="spinner"></div></div></td></tr></tbody>
@@ -355,6 +355,12 @@
 
       <!-- ── 機台管理 ── -->
       <div id="page-machines" class="page">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+          <div style="font-size:13px;font-weight:600;color:var(--text2);white-space:nowrap">店號搜尋</div>
+          <input class="form-control" id="store-search" placeholder="輸入店號..." style="max-width:200px;padding:6px 10px"
+            oninput="filterByStore(this.value)">
+          <button class="btn btn-sm" onclick="document.getElementById('store-search').value='';filterByStore('')">清除</button>
+        </div>
         <div class="filter-bar" id="machine-filters">
           <div class="pill active" onclick="filterMachines('',this)">全部</div>
         </div>
@@ -365,8 +371,8 @@
           <table>
             <thead>
               <tr>
-                <th>機台 SN</th><th>類型</th><th>問題描述</th>
-                <th>狀態</th><th>最後修改時間</th><th>最後更新者</th><th>批次</th><th>操作</th>
+                <th>機台 SN</th><th>類型</th><th>狀態</th><th>問題描述</th>
+                <th>最後修改時間</th><th>最後更新者</th><th>批次</th><th>操作</th>
               </tr>
             </thead>
             <tbody id="machine-tbody"><tr><td colspan="8"><div class="loading"><div class="spinner"></div></div></td></tr></tbody>
@@ -846,10 +852,27 @@ function filterTypes(val, el) {
   applyFilters();
 }
 
+let _storeSearch = '';
+
+function filterByStore(val) {
+  _storeSearch = val.trim();
+  // 清除狀態和類型篩選
+  document.querySelectorAll('#machine-filters .pill').forEach(p => p.classList.remove('active'));
+  document.querySelector('#machine-filters .pill').classList.add('active');
+  document.querySelectorAll('#type-filters .pill').forEach(p => p.classList.remove('active'));
+  document.querySelector('#type-filters .pill').classList.add('active');
+  _activeStatus = ''; _activeType = '';
+  applyFilters();
+}
+
 function applyFilters() {
   let list = machines;
-  if (_activeStatus) list = list.filter(m => m.status === _activeStatus);
-  if (_activeType)   list = list.filter(m => m.type === _activeType);
+  if (_storeSearch) {
+    list = list.filter(m => m.store_no && String(m.store_no).includes(_storeSearch));
+  } else {
+    if (_activeStatus) list = list.filter(m => m.status === _activeStatus);
+    if (_activeType)   list = list.filter(m => m.type === _activeType);
+  }
   renderMachineRows('machine-tbody', list, true);
 }
 
@@ -863,11 +886,15 @@ function renderMachineRows(tbodyId, list, showBatch = false) {
     const status = m.status || '台灣倉';
     const repairStep = m.repair_step || '';
     const badgeCls = STATUS_BADGE[status] || 'badge-ok';
+    const storeTag = isStoreStatus(status) && m.store_no
+      ? `<span style="font-size:11px;background:#F3E8FF;color:#6B21A8;padding:1px 6px;border-radius:4px;margin-left:6px">店號：${m.store_no}</span>` : '';
+    const repairTag = isRepairStatus(status) && repairStep
+      ? `<span style="font-size:11px;color:var(--text3);margin-left:6px">${repairStep}</span>` : '';
     return `<tr class="clickable" onclick="openDetail('${m.sn}')">
       <td><strong>${m.sn}</strong></td>
       <td><span class="badge badge-type">${m.type}</span></td>
-      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.issue}</td>
-      <td><span class="badge ${badgeCls}">${status}</span>${isRepairStatus(status) && repairStep ? `<span style="font-size:11px;color:var(--text3);margin-left:6px">${repairStep}</span>` : ''}${isStoreStatus(status) && m.store_no ? `<span style="font-size:11px;color:var(--text3);margin-left:6px">${m.store_no}</span>` : ''}</td>
+      <td><span class="badge ${badgeCls}">${status}</span>${repairTag}${storeTag}</td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2)">${m.issue || '—'}</td>
       <td style="color:var(--text3);font-size:12px">${formatTime(m.updated_at || m.created_at)}</td>
       <td>${m.updated_by || m.owner || '—'}</td>
       ${showBatch ? `<td style="color:var(--text3);font-size:12px">${m.batch}</td>` : ''}
@@ -1268,8 +1295,9 @@ function isRepairStatus(status) {
 }
 
 function isStoreStatus(status) {
-  const storeStatuses = (window._settings && window._settings.store_status) || ['STORE'];
-  return storeStatuses.includes(status);
+  const storeStatuses = window._settings && window._settings.store_status;
+  if (storeStatuses && storeStatuses.length > 0) return storeStatuses.includes(status);
+  return String(status).toUpperCase().includes('STORE');
 }
 
 function toast(msg, type = 'success') {
