@@ -608,6 +608,12 @@
           <input class="form-control" id="inv-qty" type="number" value="1" min="1">
         </div>
       </div>
+      <div class="form-group">
+        <label class="form-label">操作人員 *</label>
+        <select class="form-control" id="inv-operator">
+          <option value="">請選擇</option>
+        </select>
+      </div>
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">關聯機台 SN（可空白）</label>
@@ -619,6 +625,21 @@
         </div>
       </div>
     </div>
+      <div id="inv-item-log" style="display:none;margin-top:16px">
+        <div style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--text2)">此零件出入庫記錄</div>
+        <div style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius)">
+          <table style="width:100%;font-size:12px;border-collapse:collapse">
+            <thead><tr style="background:var(--bg)">
+              <th style="padding:6px 10px;text-align:left">類型</th>
+              <th style="padding:6px 10px;text-align:left">異動量</th>
+              <th style="padding:6px 10px;text-align:left">備註</th>
+              <th style="padding:6px 10px;text-align:left">操作人</th>
+              <th style="padding:6px 10px;text-align:left">時間</th>
+            </tr></thead>
+            <tbody id="inv-item-log-tbody"></tbody>
+          </table>
+        </div>
+      </div>
     <div class="modal-footer">
       <button class="btn" onclick="closeModal('inv-adjust')">取消</button>
       <button class="btn btn-primary" onclick="submitInvAdjust()">確認</button>
@@ -1176,7 +1197,16 @@ async function loadInventory() {
   }
 }
 
-function openInvAdjust() { openModal('inv-adjust'); }
+function openInvAdjust() {
+  openModal('inv-adjust');
+  // 填入人員選單
+  if (window._operators) {
+    const el = document.getElementById('inv-operator');
+    if (el) el.innerHTML = '<option value="">請選擇</option>' +
+      window._operators.map(o => `<option>${o}</option>`).join('');
+  }
+  document.getElementById('inv-item-log').style.display = 'none';
+}
 
 async function submitInvAdjust() {
   const name = document.getElementById('inv-name-input').value.trim();
@@ -1317,8 +1347,14 @@ function filterInv(type, val, el) {
   renderInventoryTable(list);
 }
 
-function openInvAdjustFor(name, module, category, spec) {
+async function openInvAdjustFor(name, module, category, spec) {
   openModal('inv-adjust');
+  // 填入人員選單
+  if (window._operators) {
+    const el = document.getElementById('inv-operator');
+    if (el) el.innerHTML = '<option value="">請選擇</option>' +
+      window._operators.map(o => `<option>${o}</option>`).join('');
+  }
   setTimeout(() => {
     const nameEl = document.getElementById('inv-name-input');
     const modEl  = document.getElementById('inv-module-select');
@@ -1329,6 +1365,28 @@ function openInvAdjustFor(name, module, category, spec) {
     if (modEl)  { Array.from(modEl.options).forEach(o => o.selected = o.value === module); }
     if (catEl)  { Array.from(catEl.options).forEach(o => o.selected = o.value === category); }
   }, 100);
+
+  // 載入此零件的出入庫記錄
+  try {
+    const logData = await apiGet({ action: 'getLogs', sheet: 'inventory_log', filter_col: 'name', filter_val: name });
+    const logs = logData.rows || [];
+    const tbody = document.getElementById('inv-item-log-tbody');
+    const logSection = document.getElementById('inv-item-log');
+    if (logs.length > 0) {
+      tbody.innerHTML = logs.map(l => `<tr style="border-top:0.5px solid var(--border)">
+        <td style="padding:6px 10px"><span class="badge badge-${l.type==='入庫'?'完成':'維修中'}">${l.type}</span></td>
+        <td style="padding:6px 10px;color:${Number(l.delta)>0?'var(--green)':'var(--red)'}">${Number(l.delta)>0?'+':''}${l.delta}</td>
+        <td style="padding:6px 10px;color:var(--text3)">${l.note||'—'}</td>
+        <td style="padding:6px 10px">${l.operator||'—'}</td>
+        <td style="padding:6px 10px;color:var(--text3)">${formatTime(l.timestamp)}</td>
+      </tr>`).join('');
+      logSection.style.display = 'block';
+    } else {
+      logSection.style.display = 'none';
+    }
+  } catch(e) {
+    document.getElementById('inv-item-log').style.display = 'none';
+  }
 }
 
 function formatTime(ts) {
