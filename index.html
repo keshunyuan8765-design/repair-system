@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>維修管理系統</title>
+<style>
+  :root {
+    --green: #1D9E75; --green-dark: #0F6E56; --green-light: #E1F5EE;
+    --blue: #378ADD; --blue-light: #E6F1FB;
+    --amber: #BA7517; --amber-light: #FAEEDA;
+    --red: #A32D2D; --red-light: #FCEBEB;
+    --purple: #534AB7; --purple-light: #EEEDFE;
+    --gray: #5F5E5A; --gray-light: #F1EFE8;
+    --border: #e0ddd6; --bg: #f8f7f4; --card: #ffffff;
+    --text: #1a1a18; --text2: #5F5E5A; --text3: #888780;
+    --radius: 8px; --radius-lg: 12px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, 'Helvetica Neue', sans-serif; font-size: 14px;
+         background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* Layout */
+  .app { display: flex; min-height: 100vh; }
+  .sidebar { width: 210px; flex-shrink: 0; background: var(--card); border-right: 1px solid var(--border);
+             display: flex; flex-direction: column; }
+  .sidebar-logo { padding: 20px 16px 16px; border-bottom: 1px solid var(--border); }
+  .logo-mark { display: flex; align-items: center; gap: 8px; }
+  .logo-icon { width: 28px; height: 28px; background: var(--green); border-radius: 6px;
+                display: flex; align-items: center; justify-content: center; }
+  .logo-icon svg { width: 16px; height: 16px; fill: white; }
+  .logo-name { font-size: 14px; font-weight: 600; letter-spacing: -0.2px; }
+  .logo-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .nav { padding: 8px 0; flex: 1; }
+  .nav-section { padding: 12px 16px 4px; font-size: 10px; font-weight: 600;
+                  text-transform: uppercase; letter-spacing: 0.8px; color: var(--text3); }
+  .nav-item { display: flex; align-items: center; gap: 9px; padding: 8px 16px; cursor: pointer;
+               font-size: 13px; color: var(--text2); border-radius: 0; transition: all 0.15s;
+               border-left: 2px solid transparent; }
+  .nav-item:hover { background: var(--gray-light); color: var(--text); }
+  .nav-item.active { background: var(--green-light); color: var(--green-dark);
+                      font-weight: 500; border-left-color: var(--green); }
+  .nav-item svg { width: 15px; height: 15px; flex-shrink: 0; opacity: 0.7; }
+  .nav-item.active svg { opacity: 1; }
+  .sidebar-user { padding: 12px 16px; border-top: 1px solid var(--border); }
+  .user-info { display: flex; align-items: center; gap: 8px; }
+  .user-avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--green-light);
+                  display: flex; align-items: center; justify-content: center;
+                  font-size: 11px; font-weight: 600; color: var(--green-dark); flex-shrink: 0; }
+  .user-name { font-size: 12px; font-weight: 500; }
+  .user-email { font-size: 11px; color: var(--text3); }
+
+  /* Main */
+  .main { flex: 1; overflow: auto; display: flex; flex-direction: column; }
+  .topbar { background: var(--card); border-bottom: 1px solid var(--border);
+             padding: 0 24px; height: 52px; display: flex; align-items: center;
+             justify-content: space-between; flex-shrink: 0; }
+  .topbar-left { display: flex; align-items: center; gap: 12px; }
+  .page-title { font-size: 15px; font-weight: 600; }
+  .breadcrumb { font-size: 12px; color: var(--text3); }
+  .topbar-actions { display: flex; gap: 8px; }
+  .content { padding: 24px; flex: 1; }
+
+  /* Buttons */
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px;
+          border-radius: var(--radius); font-size: 13px; font-weight: 500; cursor: pointer;
+          border: 1px solid var(--border); background: var(--card); color: var(--text);
+          transition: all 0.15s; white-space: nowrap; }
+  .btn:hover { background: var(--gray-light); }
+  .btn-primary { background: var(--green); color: white; border-color: var(--green); }
+  .btn-primary:hover { background: var(--green-dark); border-color: var(--green-dark); }
+  .btn-sm { padding: 4px 10px; font-size: 12px; }
+  .btn svg { width: 14px; height: 14px; }
+
+  /* Stats */
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+  .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg);
+                padding: 16px 18px; }
+  .stat-label { font-size: 12px; color: var(--text3); font-weight: 500; text-transform: uppercase;
+                 letter-spacing: 0.5px; margin-bottom: 8px; }
+  .stat-value { font-size: 28px; font-weight: 700; line-height: 1; margin-bottom: 4px; }
+  .stat-sub { font-size: 12px; color: var(--text3); }
+
+  /* Tables */
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg);
+           overflow: hidden; margin-bottom: 20px; box-shadow: var(--shadow); }
+  .card-header { padding: 14px 18px; border-bottom: 1px solid var(--border);
+                  display: flex; align-items: center; justify-content: space-between; }
+  .card-title { font-size: 13px; font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: var(--bg); padding: 9px 14px; text-align: left; font-weight: 600;
+       font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.4px;
+       border-bottom: 1px solid var(--border); white-space: nowrap; }
+  td { padding: 11px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #fafaf8; }
+  .clickable { cursor: pointer; }
+
+  /* Badges */
+  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px;
+            border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .badge::before { content:''; width:5px; height:5px; border-radius:50%; background:currentColor; }
+  .badge-美國倉    { background:#EEF2FF; color:#3730A3; }
+  .badge-海運      { background:#EFF6FF; color:#1D4ED8; }
+  .badge-台灣倉    { background:#FAEEDA; color:#854F0B; }
+  .badge-維修中    { background:#FDF2F8; color:#9D174D; }
+  .badge-待出貨    { background:#EEEDFE; color:#534AB7; }
+  .badge-海運美    { background:#E1F5EE; color:#0F6E56; }
+  .badge-清潔      { background:#FDF2F8; color:#9D174D; }
+  .badge-問題確認  { background:#EEF2FF; color:#4338CA; }
+  .badge-維修      { background:#EFF6FF; color:#1D4ED8; }
+  .badge-驗機      { background:#EEEDFE; color:#534AB7; }
+  .badge-打包      { background:#F0FDF4; color:#166534; }
+  .badge-海運美    { background:#E1F5EE; color:#0F6E56; }
+  .badge-STORE     { background:#F3E8FF; color:#6B21A8; }
+  .badge-type      { background:#EFF6FF; color:#1D4ED8; }
+  .badge-low       { background:var(--red-light); color:var(--red); }
+  .badge-ok        { background:var(--green-light); color:var(--green-dark); }
+
+  /* Progress */
+  .step-progress { display: flex; align-items: center; gap: 2px; }
+  .step-pip { width: 8px; height: 8px; border-radius: 50%; background: var(--border); flex-shrink: 0; }
+  .step-pip.done { background: var(--green); }
+  .step-pip.current { background: var(--blue); }
+
+  /* Filter pills */
+  .filter-bar { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+  .pill { padding: 5px 13px; border-radius: 20px; font-size: 12px; font-weight: 500;
+           cursor: pointer; border: 1px solid var(--border); background: var(--card);
+           color: var(--text2); transition: all 0.15s; }
+  .pill:hover { border-color: var(--green); color: var(--green); }
+  .pill.active { background: var(--green); color: white; border-color: var(--green); }
+
+  /* Modal */
+  .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+              z-index: 100; align-items: center; justify-content: center; padding: 20px; }
+  .overlay.open { display: flex; }
+  .modal { background: var(--card); border-radius: var(--radius-lg); width: 100%;
+            max-width: 520px; max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.15); }
+  .modal-lg { max-width: 680px; }
+  .modal-header { padding: 18px 20px; border-bottom: 1px solid var(--border);
+                   display: flex; align-items: center; justify-content: space-between; }
+  .modal-title { font-size: 15px; font-weight: 600; }
+  .modal-close { width: 28px; height: 28px; border-radius: 6px; border: none;
+                  background: transparent; cursor: pointer; display: flex; align-items: center;
+                  justify-content: center; color: var(--text3); font-size: 18px; }
+  .modal-close:hover { background: var(--gray-light); }
+  .modal-body { padding: 20px; }
+  .modal-footer { padding: 14px 20px; border-top: 1px solid var(--border);
+                   display: flex; justify-content: flex-end; gap: 8px; }
+
+  /* Forms */
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-group { margin-bottom: 14px; }
+  .form-label { display: block; font-size: 12px; font-weight: 600; color: var(--text2);
+                 margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.3px; }
+  .form-control { width: 100%; padding: 8px 11px; border: 1px solid var(--border);
+                   border-radius: var(--radius); font-size: 13px; color: var(--text);
+                   background: var(--card); transition: border-color 0.15s; }
+  .form-control:focus { outline: none; border-color: var(--green); }
+  textarea.form-control { resize: vertical; min-height: 70px; }
+
+  /* Detail sections */
+  .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px; }
+  .detail-item { background: var(--bg); border-radius: var(--radius); padding: 10px 12px; }
+  .detail-label { font-size: 11px; color: var(--text3); font-weight: 600; text-transform: uppercase;
+                   letter-spacing: 0.4px; margin-bottom: 3px; }
+  .detail-value { font-size: 13px; font-weight: 500; }
+
+  /* Step flow in detail */
+  .step-flow { display: flex; align-items: flex-start; gap: 0; margin-bottom: 18px; overflow-x: auto; }
+  .step-item { display: flex; flex-direction: column; align-items: center; gap: 5px; flex: 1; min-width: 64px; }
+  .step-circle { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center;
+                  justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; position: relative; z-index: 1; }
+  .step-circle.done { background: var(--green); color: white; }
+  .step-circle.current { background: var(--blue); color: white; box-shadow: 0 0 0 3px var(--blue-light); }
+  .step-circle.pending { background: var(--bg); color: var(--text3); border: 1.5px solid var(--border); }
+  .step-label-sm { font-size: 10px; color: var(--text3); text-align: center; line-height: 1.3; }
+  .step-label-sm.current { color: var(--blue); font-weight: 600; }
+  .step-label-sm.done { color: var(--green); }
+  .step-connector { flex: 1; height: 1.5px; background: var(--border); margin-top: 14px; min-width: 8px; }
+  .step-connector.done { background: var(--green); }
+
+  /* Log table */
+  .log-operator { display: inline-flex; align-items: center; gap: 5px; }
+  .log-avatar { width: 20px; height: 20px; border-radius: 50%; background: var(--green-light);
+                 display: flex; align-items: center; justify-content: center; font-size: 9px;
+                 font-weight: 700; color: var(--green-dark); flex-shrink: 0; }
+
+  /* Inventory cards */
+  .inv-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+  .inv-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg);
+               padding: 14px 16px; position: relative; }
+  .inv-card.low { border-color: #F0997B; background: #FFFBF9; }
+  .inv-name { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+  .inv-qty { font-size: 26px; font-weight: 700; margin: 6px 0; color: var(--green); }
+  .inv-qty.low { color: var(--amber); }
+  .inv-unit { font-size: 12px; color: var(--text3); }
+  .inv-warn { position: absolute; top: 10px; right: 12px; font-size: 11px;
+               font-weight: 600; color: var(--amber); background: var(--amber-light);
+               padding: 2px 7px; border-radius: 10px; }
+  .inv-min { font-size: 11px; color: var(--text3); margin-top: 4px; }
+
+  /* Pages */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* Loading */
+  .loading { display: flex; align-items: center; justify-content: center; padding: 60px 20px; }
+  .spinner { width: 28px; height: 28px; border: 2.5px solid var(--border);
+              border-top-color: var(--green); border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .empty-state { text-align: center; padding: 48px 20px; color: var(--text3); font-size: 13px; }
+
+  /* Toast */
+  .toast-wrap { position: fixed; bottom: 24px; right: 24px; z-index: 999; display: flex; flex-direction: column; gap: 8px; }
+  .toast { padding: 12px 16px; border-radius: var(--radius); font-size: 13px; font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15); animation: toastIn 0.2s ease;
+            display: flex; align-items: center; gap: 8px; max-width: 320px; }
+  .toast-success { background: var(--green); color: white; }
+  .toast-error   { background: var(--red); color: white; }
+  @keyframes toastIn { from { opacity:0; transform:translateY(8px); } }
+
+  /* Setup screen */
+  .setup-screen { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: var(--bg); }
+  .setup-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg);
+                 padding: 40px; max-width: 480px; width: 100%; box-shadow: var(--shadow); text-align: center; }
+  .setup-icon { width: 56px; height: 56px; background: var(--green); border-radius: 12px;
+                 display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; }
+  .setup-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+  .setup-desc { font-size: 14px; color: var(--text3); line-height: 1.6; margin-bottom: 24px; }
+  .setup-input { width: 100%; padding: 10px 12px; border: 1px solid var(--border);
+                  border-radius: var(--radius); font-size: 14px; margin-bottom: 12px; font-family: monospace; }
+  .setup-input:focus { outline: none; border-color: var(--green); }
+</style>
+</head>
+<body>
+
+<!-- ── 設定畫面（首次使用） ── -->
+<div id="setup-screen" class="setup-screen" style="display:none">
+  <div class="setup-card">
+    <div class="setup-icon">
+      <svg width="28" height="28" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
+        <path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/>
+      </svg>
+    </div>
+    <div class="setup-title">設定 API 位址</div>
+    <div class="setup-desc">
+      請貼上你的 Google Apps Script Web App 網址<br>
+      （部署後可在 GAS 介面複製）
+    </div>
+    <input class="setup-input" id="api-url-input" placeholder="https://script.google.com/macros/s/AK.../exec">
+    <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="saveApiUrl()">
+      確認連線
+    </button>
+  </div>
+</div>
+
+<!-- ── 主應用 ── -->
+<div class="app" id="main-app" style="display:none">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark">
+        <div class="logo-icon">
+          <svg viewBox="0 0 16 16"><path d="M2 3h12v2H2zm0 4h12v2H2zm0 4h8v2H2z"/></svg>
+        </div>
+        <div>
+          <div class="logo-name">維修管理系統</div>
+          <div class="logo-sub">美回機台追蹤</div>
+        </div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <div class="nav-section">主要功能</div>
+      <div class="nav-item active" data-page="dashboard" onclick="navigate('dashboard',this)">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+          <rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5"/>
+          <rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/>
+        </svg>
+        總覽
+      </div>
+      <div class="nav-item" data-page="machines" onclick="navigate('machines',this)">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+          <rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M5 3V1.5M11 3V1.5M2 7h12"/>
+        </svg>
+        機台管理
+      </div>
+      <div class="nav-section">庫存 &amp; 記錄</div>
+      <div class="nav-item" data-page="inventory" onclick="navigate('inventory',this)">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M2 4l6-2 6 2v8l-6 2-6-2V4z"/><path d="M8 2v12M2 4l6 2 6-2"/>
+        </svg>
+        庫存管理
+      </div>
+      <div class="nav-item" data-page="logs" onclick="navigate('logs',this)">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M3 4h10M3 8h10M3 12h6"/><circle cx="13" cy="12" r="2.5"/>
+        </svg>
+        操作記錄
+      </div>
+    </nav>
+
+    <div class="sidebar-user">
+      <div class="user-info">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div>
+          <div class="user-name" id="user-name">載入中...</div>
+          <div class="user-email" id="user-email"></div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="page-title" id="page-title">總覽</div>
+      </div>
+      <div class="topbar-actions" id="topbar-actions">
+        <button class="btn btn-primary" onclick="openModal('add-machine')">
+          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M7 1v12M1 7h12"/>
+          </svg>
+          新增機台
+        </button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- ── 總覽 ── -->
+      <div id="page-dashboard" class="page active">
+        <div class="stats-grid" id="stats-grid">
+          <div class="stat-card"><div class="stat-label">機台總數</div><div class="stat-value" id="s-total">—</div><div class="stat-sub">所有批次</div></div>
+          <div class="stat-card"><div class="stat-label">維修中</div><div class="stat-value" style="color:var(--blue)" id="s-inprogress">—</div><div class="stat-sub">維修中</div></div>
+          <div class="stat-card"><div class="stat-label">本批次完成</div><div class="stat-value" style="color:var(--green)" id="s-done">—</div><div class="stat-sub">海運to美國</div></div>
+          <div class="stat-card"><div class="stat-label">低庫存零件</div><div class="stat-value" style="color:var(--amber)" id="s-lowstock">—</div><div class="stat-sub">需補貨</div></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><div class="card-title">機台進度追蹤</div></div>
+          <table>
+            <thead>
+              <tr>
+                <th>機台 SN</th><th>類型</th><th>問題描述</th>
+                <th>狀態</th><th>最後修改時間</th><th>最後更新者</th><th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="dash-tbody"><tr><td colspan="7"><div class="loading"><div class="spinner"></div></div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── 機台管理 ── -->
+      <div id="page-machines" class="page">
+        <div class="filter-bar" id="machine-filters">
+          <div class="pill active" onclick="filterMachines('',this)">全部</div>
+        </div>
+        <div class="filter-bar" id="type-filters">
+          <div class="pill active" onclick="filterTypes('',this)">全部類型</div>
+        </div>
+        <div class="card">
+          <table>
+            <thead>
+              <tr>
+                <th>機台 SN</th><th>類型</th><th>問題描述</th>
+                <th>狀態</th><th>最後修改時間</th><th>最後更新者</th><th>批次</th><th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="machine-tbody"><tr><td colspan="8"><div class="loading"><div class="spinner"></div></div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── 庫存管理 ── -->
+      <div id="page-inventory" class="page">
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-header">
+            <div class="card-title">零件庫存</div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <div class="filter-bar" id="inv-module-filters" style="margin-bottom:0"></div>
+              <div class="filter-bar" id="inv-category-filters" style="margin-bottom:0"></div>
+            </div>
+          </div>
+          <table>
+            <thead><tr><th>模組</th><th>類別</th><th>品名</th><th>規格</th><th>庫存數量</th><th>低水位</th><th>狀態</th><th>操作</th></tr></thead>
+            <tbody id="inv-tbody"><tr><td colspan="8"><div class="loading"><div class="spinner"></div></div></td></tr></tbody>
+          </table>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">庫存異動記錄</div>
+          </div>
+          <table>
+            <thead><tr><th>品名</th><th>類型</th><th>異動量</th><th>異動後庫存</th><th>關聯機台</th><th>操作人</th><th>時間</th></tr></thead>
+            <tbody id="invlog-tbody"><tr><td colspan="7"><div class="loading"><div class="spinner"></div></div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── 操作記錄 ── -->
+      <div id="page-logs" class="page">
+        <div class="card">
+          <div class="card-header"><div class="card-title">所有維修操作記錄</div></div>
+          <table>
+            <thead><tr><th>機台 SN</th><th>步驟</th><th>備註</th><th>更換零件</th><th>操作人</th><th>時間</th></tr></thead>
+            <tbody id="log-tbody"><tr><td colspan="6"><div class="loading"><div class="spinner"></div></div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- ── Modal：新增機台 ── -->
+<div class="overlay" id="modal-add-machine">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">新增維修機台</div>
+      <button class="modal-close" onclick="closeModal('add-machine')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">機台序號 (SN) *</label>
+          <input class="form-control" id="new-sn" placeholder="SN-2024-XXX">
+        </div>
+        <div class="form-group">
+          <label class="form-label">類型</label>
+          <select class="form-control" id="new-type">
+            <option>載入中...</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">目前狀態</label>
+          <select class="form-control" id="new-status" onchange="toggleStoreField('new-store-row', this.value)">
+            <option>美國倉</option>
+            <option>海運to台灣</option>
+            <option>台灣倉</option>
+            <option>維修中</option>
+            <option>待出貇</option>
+            <option>海運to美國</option>
+            <option>STORE</option>
+          </select>
+          <div id="new-store-row" style="margin-top:8px;display:none">
+            <label class="form-label">店號</label>
+            <input class="form-control" id="new-store-no" placeholder="例如：S001">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">維修步驟（維修中才需填）</label>
+          <select class="form-control" id="new-repair-step">
+            <option value="">—</option>
+            <option>清潔</option>
+            <option>問題確認</option>
+            <option>維修</option>
+            <option>驗機</option>
+            <option>清潔(完工)</option>
+            <option>打包</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">退回問題描述 *</label>
+        <textarea class="form-control" id="new-issue" placeholder="描述問題，例如：電控箱異常、機頭異響..."></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">批次</label>
+          <input class="form-control" id="new-batch" placeholder="BATCH-2024-01">
+        </div>
+        <div class="form-group">
+          <label class="form-label">負責人</label>
+          <input class="form-control" id="new-owner" placeholder="姓名">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">備註</label>
+        <input class="form-control" id="new-note" placeholder="其他備註（可空白）">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('add-machine')">取消</button>
+      <button class="btn btn-primary" onclick="submitAddMachine()">確認新增</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal：機台詳情 ── -->
+<div class="overlay" id="modal-detail">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="detail-sn">機台詳情</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:2px" id="detail-issue"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal('detail')">×</button>
+    </div>
+    <div class="modal-body">
+      <!-- 步驟流程 -->
+      <div class="step-flow" id="detail-step-flow"></div>
+      <!-- 基本資訊 -->
+      <div class="detail-grid" id="detail-info-grid"></div>
+      <!-- 推進步驟 -->
+      <div id="advance-section" style="background:var(--green-light);border-radius:var(--radius);padding:14px 16px;margin-bottom:18px">
+        <div style="font-size:13px;font-weight:600;color:var(--green-dark);margin-bottom:10px" id="advance-title">推進到下一步驟</div>
+        <div class="form-group" style="margin-bottom:10px">
+          <label class="form-label">備註（本次操作）</label>
+          <input class="form-control" id="advance-note" placeholder="填寫本步驟的操作備註">
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">更換零件（可空白）</label>
+          <input class="form-control" id="advance-parts" placeholder="例如：驅動模組 A × 1">
+        </div>
+      </div>
+      <!-- 操作記錄 -->
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px">操作記錄</div>
+      <table style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+        <thead>
+          <tr><th>步驟</th><th>備註</th><th>零件</th><th>操作人</th><th>時間</th></tr>
+        </thead>
+        <tbody id="detail-log-tbody"><tr><td colspan="5"><div class="loading"><div class="spinner"></div></div></td></tr></tbody>
+      </table>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('detail')">關閉</button>
+      <button class="btn btn-primary" id="btn-advance" onclick="submitAdvance()">更新狀態</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal：調整庫存 ── -->
+<div class="overlay" id="modal-inv-adjust">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">調整庫存</div>
+      <button class="modal-close" onclick="closeModal('inv-adjust')">×</button>
+    </div>
+    <div class="modal-body">
+        <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">模組</label>
+          <select class="form-control" id="inv-module-select"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">類別</label>
+          <select class="form-control" id="inv-category-select"></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">品名 *</label>
+          <input class="form-control" id="inv-name-input" placeholder="零件品名">
+        </div>
+        <div class="form-group">
+          <label class="form-label">規格</label>
+          <input class="form-control" id="inv-spec-input" placeholder="型號或尺寸">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">操作類型</label>
+          <select class="form-control" id="inv-op">
+            <option value="1">入庫（＋）</option>
+            <option value="-1">出庫（－）</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">數量</label>
+          <input class="form-control" id="inv-qty" type="number" value="1" min="1">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">關聯機台 SN（可空白）</label>
+          <input class="form-control" id="inv-sn" placeholder="SN-2024-XXX">
+        </div>
+        <div class="form-group">
+          <label class="form-label">備註</label>
+          <input class="form-control" id="inv-note" placeholder="備註">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('inv-adjust')">取消</button>
+      <button class="btn btn-primary" onclick="submitInvAdjust()">確認</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Toast 容器 ── -->
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<script>
+// =============================================
+// 設定
+// =============================================
+const STATUSES = ['美國倉','海運to台灣','台灣倉','維修中','待出貨','海運to美國','STORE'];
+const REPAIR_STEPS = ['清潔','問題確認','維修','驗機','清潔(完工)','打包'];
+const STATUS_BADGE = {
+  '美國倉':'badge-美國倉','海運to台灣':'badge-海運','台灣倉':'badge-台灣倉',
+  '維修中':'badge-維修中','待出貨':'badge-待出貨','海運to美國':'badge-海運美',
+};
+let API_URL = localStorage.getItem('repair_api_url') || '';
+let machines = [], inventory = [], currentSN = null;
+
+// =============================================
+// 初始化
+// =============================================
+window.onload = () => {
+  if (!API_URL) {
+    document.getElementById('setup-screen').style.display = 'flex';
+  } else {
+    showApp();
+  }
+};
+
+function saveApiUrl() {
+  const url = document.getElementById('api-url-input').value.trim();
+  if (!url.startsWith('https://script.google.com')) {
+    toast('請貼上正確的 Apps Script 網址', 'error'); return;
+  }
+  localStorage.setItem('repair_api_url', url);
+  API_URL = url;
+  showApp();
+}
+
+function showApp() {
+  document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('main-app').style.display = 'flex';
+  loadUser();
+  loadSettings().then(() => loadDashboard());
+}
+
+async function loadSettings() {
+  try {
+    const data = await apiGet({ action: 'getRows', sheet: 'settings' });
+    const rows = data.rows || [];
+    const settings = {};
+    rows.forEach(r => {
+      if (!settings[r.key]) settings[r.key] = [];
+      settings[r.key].push(r.value);
+    });
+    window._settings = settings;
+
+    // 填入類型選單
+    const typeSel = document.getElementById('new-type');
+    if (typeSel && settings.type) {
+      typeSel.innerHTML = settings.type.map(v => `<option>${v}</option>`).join('');
+    }
+    // 動態建立類型篩選列
+    if (settings.type) {
+      window._types = settings.type;
+      const typeFilterBar = document.getElementById('type-filters');
+      if (typeFilterBar) {
+        const extra = settings.type.map(t =>
+          `<div class="pill" onclick="filterTypes('${t}',this)">${t}</div>`
+        ).join('');
+        typeFilterBar.innerHTML = `<div class="pill active" onclick="filterTypes('',this)">全部類型</div>${extra}`;
+      }
+    }
+
+    // 填入狀態選單（新增機台用）& 篩選列
+    if (settings.status) {
+      window._statuses = settings.status;
+      const statusSel = document.getElementById('new-status');
+      if (statusSel) {
+        statusSel.innerHTML = settings.status.map(v => `<option>${v}</option>`).join('');
+      }
+      // 更新 STATUS_BADGE
+      settings.status.forEach(s => {
+        if (!STATUS_BADGE[s]) STATUS_BADGE[s] = 'badge-ok';
+      });
+      // 動態建立篩選列
+      const filterBar = document.getElementById('machine-filters');
+      if (filterBar) {
+        const extra = settings.status.map(s =>
+          `<div class="pill" onclick="filterMachines('${s}',this)">${s}</div>`
+        ).join('');
+        filterBar.innerHTML = `<div class="pill active" onclick="filterMachines('',this)">全部</div>${extra}`;
+      }
+    }
+  } catch(e) {
+    console.warn('settings 載入失敗', e);
+  }
+}
+
+// =============================================
+// API 呼叫（使用 JSONP 繞過 GAS CORS 限制）
+// =============================================
+let _cbSeq = 0;
+function _jsonp(url) {
+  return new Promise((resolve, reject) => {
+    const cbName = 'gcb_' + (++_cbSeq);
+    const sep = url.includes('?') ? '&' : '?';
+    const script = document.createElement('script');
+    const timer = setTimeout(() => {
+      delete window[cbName]; script.remove();
+      reject(new Error('請求逾時'));
+    }, 12000);
+    window[cbName] = (data) => {
+      clearTimeout(timer); delete window[cbName]; script.remove();
+      resolve(data);
+    };
+    script.src = url + sep + 'callback=' + cbName;
+    script.onerror = () => {
+      clearTimeout(timer); delete window[cbName]; script.remove();
+      reject(new Error('無法連線到 API'));
+    };
+    document.head.appendChild(script);
+  });
+}
+
+function apiGet(params) {
+  const qs = new URLSearchParams(params).toString();
+  return _jsonp(`${API_URL}?${qs}`);
+}
+
+function apiPost(body) {
+  const qs = new URLSearchParams({ payload: JSON.stringify(body) }).toString();
+  return _jsonp(`${API_URL}?${qs}`);
+}
+
+// =============================================
+// 使用者資訊（示意，GAS 會回傳）
+// =============================================
+function loadUser() {
+  // 實際部署後從 GAS 取得，這邊先顯示本地快取或預設值
+  const email = localStorage.getItem('user_email') || 'user@gmail.com';
+  const name = email.split('@')[0];
+  document.getElementById('user-name').textContent = name;
+  document.getElementById('user-email').textContent = email;
+  document.getElementById('user-avatar').textContent = name.slice(0, 2).toUpperCase();
+}
+
+// =============================================
+// 頁面切換
+// =============================================
+function navigate(page, el) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+
+  const titles = { dashboard:'總覽', machines:'機台管理', inventory:'庫存管理', logs:'操作記錄' };
+  document.getElementById('page-title').textContent = titles[page] || '';
+
+  const actions = document.getElementById('topbar-actions');
+  if (page === 'inventory') {
+    actions.innerHTML = `<button class="btn btn-primary" onclick="openInvAdjust()">+ 調整庫存</button>`;
+  } else if (page === 'dashboard' || page === 'machines') {
+    actions.innerHTML = `<button class="btn btn-primary" onclick="openModal('add-machine')">
+      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M7 1v12M1 7h12"/></svg>
+      新增機台</button>`;
+  } else {
+    actions.innerHTML = '';
+  }
+
+  if (page === 'machines') loadMachines();
+  else if (page === 'dashboard') loadDashboard();
+  else if (page === 'inventory') loadInventory();
+  else if (page === 'logs') loadLogs();
+}
+
+// =============================================
+// 總覽
+// =============================================
+async function loadDashboard() {
+  try {
+    const [mData, iData, dash] = await Promise.all([
+      apiGet({ action: 'getRows', sheet: 'machines' }),
+      apiGet({ action: 'getRows', sheet: 'inventory' }),
+      apiGet({ action: 'getDashboard' }),
+    ]);
+    machines = (mData.rows || []).reverse();
+    inventory = iData.rows || [];
+
+    document.getElementById('s-total').textContent = dash.total || 0;
+    const repairCount = dash.byStatus ? Object.entries(dash.byStatus)
+      .filter(([k]) => isRepairStatus(k)).reduce((a,[,v]) => a + v, 0) : 0;
+    document.getElementById('s-inprogress').textContent = repairCount;
+    document.getElementById('s-done').textContent = (dash.byStatus && dash.byStatus['海運to美國']) || 0;
+    document.getElementById('s-lowstock').textContent = dash.lowStockCount || 0;
+
+    renderMachineRows('dash-tbody', machines);
+  } catch (e) {
+    document.getElementById('dash-tbody').innerHTML =
+      `<tr><td colspan="7"><div class="empty-state">⚠ 無法連線到 API，請確認設定</div></td></tr>`;
+  }
+}
+
+// =============================================
+// 機台列表
+// =============================================
+async function loadMachines(filter = '') {
+  const tbody = document.getElementById('machine-tbody');
+  tbody.innerHTML = `<tr><td colspan="8"><div class="loading"><div class="spinner"></div></div></td></tr>`;
+  try {
+    const data = await apiGet({ action: 'getRows', sheet: 'machines' });
+    machines = (data.rows || []).reverse();
+    const list = filter ? machines.filter(m => m.status === filter) : machines;
+    renderMachineRows('machine-tbody', list, true);
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state">載入失敗</div></td></tr>`;
+  }
+}
+
+let _activeStatus = '';
+let _activeType = '';
+
+function filterMachines(val, el) {
+  document.querySelectorAll('#machine-filters .pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  _activeStatus = val;
+  applyFilters();
+}
+
+function filterTypes(val, el) {
+  document.querySelectorAll('#type-filters .pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  _activeType = val;
+  applyFilters();
+}
+
+function applyFilters() {
+  let list = machines;
+  if (_activeStatus) list = list.filter(m => m.status === _activeStatus);
+  if (_activeType)   list = list.filter(m => m.type === _activeType);
+  renderMachineRows('machine-tbody', list, true);
+}
+
+function renderMachineRows(tbodyId, list, showBatch = false) {
+  const tbody = document.getElementById(tbodyId);
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state">目前沒有機台資料</div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = list.map(m => {
+    const status = m.status || '台灣倉';
+    const repairStep = m.repair_step || '';
+    const badgeCls = STATUS_BADGE[status] || 'badge-ok';
+    return `<tr class="clickable" onclick="openDetail('${m.sn}')">
+      <td><strong>${m.sn}</strong></td>
+      <td><span class="badge badge-type">${m.type}</span></td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.issue}</td>
+      <td><span class="badge ${badgeCls}">${status}</span>${isRepairStatus(status) && repairStep ? `<span style="font-size:11px;color:var(--text3);margin-left:6px">${repairStep}</span>` : ''}${isStoreStatus(status) && m.store_no ? `<span style="font-size:11px;color:var(--text3);margin-left:6px">${m.store_no}</span>` : ''}</td>
+      <td style="color:var(--text3);font-size:12px">${(m.updated_at || m.created_at || '').slice(0,16).replace('T',' ')}</td>
+      <td>${m.updated_by || m.owner || '—'}</td>
+      ${showBatch ? `<td style="color:var(--text3);font-size:12px">${m.batch}</td>` : ''}
+      <td><button class="btn btn-sm" onclick="event.stopPropagation();openDetail('${m.sn}')">詳情</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// =============================================
+// 機台詳情
+// =============================================
+async function openDetail(sn) {
+  currentSN = sn;
+  const m = machines.find(x => String(x.sn) === String(sn));
+  if (!m) return;
+  const status = m.status || '台灣倉';
+  const repairStep = m.repair_step || '';
+  const repairStepIdx = REPAIR_STEPS.indexOf(repairStep);
+
+  document.getElementById('detail-sn').textContent = sn;
+  document.getElementById('detail-issue').textContent = m.issue;
+
+  // 外層狀態流程
+  const flow = document.getElementById('detail-step-flow');
+  const activeStatuses = window._statuses || STATUSES;
+  flow.innerHTML = activeStatuses.map((s, i) => {
+    const idx = activeStatuses.indexOf(status);
+    const cls = i < idx ? 'done' : i === idx ? 'current' : 'pending';
+    const lCls = i < idx ? 'done' : i === idx ? 'current' : '';
+    const connDone = i < idx ? 'done' : '';
+    return `
+      <div class="step-item">
+        <div class="step-circle ${cls}">${i + 1}</div>
+        <div class="step-label-sm ${lCls}">${s}</div>
+      </div>
+      ${i < activeStatuses.length - 1 ? `<div class="step-connector ${connDone}"></div>` : ''}
+    `;
+  }).join('');
+
+  // 基本資訊
+  document.getElementById('detail-info-grid').innerHTML = `
+    <div class="detail-item"><div class="detail-label">類型</div><div class="detail-value">${m.type}</div></div>
+    <div class="detail-item"><div class="detail-label">目前狀態</div><div class="detail-value"><span class="badge ${STATUS_BADGE[status]||''}">${status}</span></div></div>
+    <div class="detail-item"><div class="detail-label">負責人</div><div class="detail-value">${m.owner}</div></div>
+    <div class="detail-item"><div class="detail-label">批次</div><div class="detail-value">${m.batch}</div></div>
+    <div class="detail-item"><div class="detail-label">入庫日期</div><div class="detail-value">${(m.created_at||'').slice(0,10)}</div></div>
+    ${isRepairStatus(status) ? `<div class="detail-item"><div class="detail-label">維修步驟</div><div class="detail-value">${repairStep || '—'}</div></div>` : ''}
+    ${isStoreStatus(status) ? `<div class="detail-item"><div class="detail-label">店號</div><div class="detail-value">${m.store_no || '—'}</div></div>` : ''}
+  `;
+
+  // 切換狀態區塊（手動）
+  const advSec = document.getElementById('advance-section');
+  const btnAdv = document.getElementById('btn-advance');
+  advSec.style.display = 'block';
+  btnAdv.style.display = '';
+  document.getElementById('advance-title').textContent = '更新狀態';
+  document.getElementById('advance-note').value = '';
+  document.getElementById('advance-parts').value = '';
+
+  // 動態產生狀態選單
+  const existingStatusSel = document.getElementById('status-select-inline');
+  if (!existingStatusSel) {
+    const sel = document.createElement('div');
+    sel.className = 'form-group';
+    sel.style.marginBottom = '10px';
+    sel.innerHTML = `<label class="form-label">切換狀態</label>
+      <select class="form-control" id="status-select-inline">
+        ${(window._statuses || STATUSES).map(s => `<option ${s===status?'selected':''}>${s}</option>`).join('')}
+      </select>
+      <div id="repair-step-row" style="margin-top:8px;display:${status==='維修中'?'block':'none'}">
+        <label class="form-label">維修步驟</label>
+        <select class="form-control" id="repair-step-inline">
+          ${REPAIR_STEPS.map(s => `<option ${s===repairStep?'selected':''}>${s}</option>`).join('')}
+        </select>
+      </div>
+      <div id="store-no-row" style="margin-top:8px;display:${status==='STORE'?'block':'none'}">
+        <label class="form-label">店號</label>
+        <input class="form-control" id="store-no-inline" placeholder="例如：S001" value="${m.store_no||''}">
+      </div>`;
+    advSec.insertBefore(sel, advSec.children[1]);
+    document.getElementById('status-select-inline').addEventListener('change', function() {
+      document.getElementById('repair-step-row').style.display = isRepairStatus(this.value) ? 'block' : 'none';
+      document.getElementById('store-no-row').style.display = isStoreStatus(this.value) ? 'block' : 'none';
+    });
+  } else {
+    existingStatusSel.value = status;
+    document.getElementById('repair-step-row').style.display = isRepairStatus(status) ? 'block' : 'none';
+    document.getElementById('store-no-row').style.display = isStoreStatus(status) ? 'block' : 'none';
+    if (repairStep) document.getElementById('repair-step-inline').value = repairStep;
+    const storeInline = document.getElementById('store-no-inline');
+    if (storeInline) storeInline.value = m.store_no || '';
+  }
+
+  // 操作記錄
+  document.getElementById('detail-log-tbody').innerHTML =
+    `<tr><td colspan="5"><div class="loading"><div class="spinner"></div></div></td></tr>`;
+  openModal('detail');
+
+  const logData = await apiGet({ action: 'getLogs', sheet: 'repair_log', filter_col: 'sn', filter_val: sn });
+  const logs = logData.rows || [];
+  const logsHtml = logs.length
+    ? logs.map(l => `<tr>
+        <td><span class="badge badge-${l.step}">${l.step}</span></td>
+        <td>${l.note || '—'}</td>
+        <td style="color:var(--text3)">${l.parts || '—'}</td>
+        <td><div class="log-operator">
+          <div class="log-avatar">${(l.operator||'?').slice(0,2).toUpperCase()}</div>
+          ${l.operator}
+        </div></td>
+        <td style="color:var(--text3);font-size:12px">${l.timestamp}</td>
+      </tr>`).join('')
+    : `<tr><td colspan="5"><div class="empty-state">尚無記錄</div></td></tr>`;
+  document.getElementById('detail-log-tbody').innerHTML = logsHtml;
+}
+
+// =============================================
+// 推進步驟
+// =============================================
+async function submitAdvance() {
+  const note = document.getElementById('advance-note').value;
+  const parts = document.getElementById('advance-parts').value;
+  const newStatus = document.getElementById('status-select-inline').value;
+  const repairStep = isRepairStatus(newStatus) ? document.getElementById('repair-step-inline').value : '';
+  const btn = document.getElementById('btn-advance');
+  btn.disabled = true; btn.textContent = '處理中...';
+
+  try {
+    const storeNo = newStatus === 'STORE' ? (document.getElementById('store-no-inline').value || '') : '';
+    const res = await apiPost({
+      action: 'updateRow', sheet: 'machines',
+      key_col: 'sn', key_val: String(currentSN),
+      updates: { status: newStatus, repair_step: repairStep, store_no: storeNo, updated_by: localStorage.getItem('user_email') || 'unknown' },
+      log: { sn: String(currentSN), status: newStatus, note: '狀態更新：' + newStatus + (repairStep ? ' / ' + repairStep : '') + (note ? ' (' + note + ')' : ''), parts: parts }
+    });
+    if (res.error) { toast(res.error, 'error'); return; }
+    toast(`${currentSN} 狀態已更新為「${newStatus}」`, 'success');
+    const m = machines.find(x => String(x.sn) === String(currentSN));
+    if (m) { m.status = newStatus; m.repair_step = repairStep; }
+    closeModal('detail');
+    loadDashboard();
+  } catch (e) {
+    toast('操作失敗，請重試', 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '更新狀態';
+  }
+}
+
+// =============================================
+// 新增機台
+// =============================================
+async function submitAddMachine() {
+  const sn = document.getElementById('new-sn').value.trim();
+  const issue = document.getElementById('new-issue').value.trim();
+  if (!sn || !issue) { toast('請填寫機台序號和問題描述', 'error'); return; }
+
+  try {
+    const newStatus = document.getElementById('new-status').value;
+    const res = await apiPost({
+      action: 'addRow', sheet: 'machines',
+      row: {
+        sn, type: document.getElementById('new-type').value,
+        issue, status: newStatus,
+        repair_step: isRepairStatus(newStatus) ? document.getElementById('new-repair-step').value : '',
+        owner: document.getElementById('new-owner').value,
+        batch: document.getElementById('new-batch').value,
+        note: document.getElementById('new-note').value,
+        created_by: localStorage.getItem('user_email') || 'unknown'
+      }
+    });
+    if (res.error) { toast(res.error, 'error'); return; }
+    toast(sn + ' 已新增入庫', 'success');
+    closeModal('add-machine');
+    loadDashboard();
+  } catch (e) {
+    toast('新增失敗，請重試', 'error');
+  }
+}
+
+// =============================================
+// 庫存
+// =============================================
+async function loadInventory() {
+  try {
+    const [iData, logData] = await Promise.all([
+      apiGet({ action: 'getRows', sheet: 'inventory' }),
+      apiGet({ action: 'getLogs', sheet: 'inventory_log' }),
+    ]);
+    inventory = (iData.rows || []).reverse();
+
+    renderInventoryTable(inventory);
+
+    // 異動記錄
+    const logs = logData.rows || [];
+    document.getElementById('invlog-tbody').innerHTML = logs.length
+      ? logs.map(l => `<tr>
+          <td><strong>${l.name}</strong></td>
+          <td><span class="badge badge-${l.type === '入庫' ? '完成' : '維修中'}">${l.type}</span></td>
+          <td style="color:${Number(l.delta) > 0 ? 'var(--green)' : 'var(--red)'}">
+            ${Number(l.delta) > 0 ? '+' : ''}${l.delta}</td>
+          <td>${l.quantity_after}</td>
+          <td style="color:var(--text3)">${l.sn || '—'}</td>
+          <td><div class="log-operator">
+            <div class="log-avatar">${(l.operator||'?').slice(0,2).toUpperCase()}</div>
+            ${l.operator}
+          </div></td>
+          <td style="color:var(--text3);font-size:12px">${(l.timestamp||'').slice(0,16).replace('T',' ')}</td>
+        </tr>`).join('')
+      : `<tr><td colspan="7"><div class="empty-state">尚無異動記錄</div></td></tr>`;
+
+    // 建立篩選列（模組、類別）
+    buildInvFilters();
+  } catch (e) {
+    document.getElementById('inv-grid').innerHTML = `<div class="empty-state">載入失敗</div>`;
+  }
+}
+
+function openInvAdjust() { openModal('inv-adjust'); }
+
+async function submitInvAdjust() {
+  const name = document.getElementById('inv-name-input').value.trim();
+  if (!name) { toast('請填寫品名', 'error'); return; }
+  const op       = Number(document.getElementById('inv-op').value);
+  const qty      = Number(document.getElementById('inv-qty').value);
+  const note     = document.getElementById('inv-note').value;
+  const sn       = document.getElementById('inv-sn').value;
+  const module   = (document.getElementById('inv-module-select')   || {}).value || '';
+  const category = (document.getElementById('inv-category-select') || {}).value || '';
+  const spec     = (document.getElementById('inv-spec-input')      || {}).value || '';
+
+  try {
+    const res = await apiPost({
+      action: 'adjustInventory', name, module, category, spec,
+      delta: op * qty, note, sn,
+      operator: localStorage.getItem('user_email') || 'unknown'
+    });
+    if (res.error) { toast(res.error, 'error'); return; }
+    toast(`${name} 庫存已更新`, 'success');
+    closeModal('inv-adjust');
+    loadInventory();
+  } catch (e) {
+    toast('操作失敗', 'error');
+  }
+}
+
+// =============================================
+// 操作記錄
+// =============================================
+async function loadLogs() {
+  try {
+    const data = await apiGet({ action: 'getLogs', sheet: 'repair_log' });
+    const logs = data.rows || [];
+    document.getElementById('log-tbody').innerHTML = logs.length
+      ? logs.map(l => `<tr>
+          <td><strong>${l.sn}</strong></td>
+          <td><span class="badge badge-${l.step}">${l.step}</span></td>
+          <td>${l.note || '—'}</td>
+          <td style="color:var(--text3)">${l.parts || '—'}</td>
+          <td><div class="log-operator">
+            <div class="log-avatar">${(l.operator||'?').slice(0,2).toUpperCase()}</div>
+            ${l.operator}
+          </div></td>
+          <td style="color:var(--text3);font-size:12px">${l.timestamp}</td>
+        </tr>`).join('')
+      : `<tr><td colspan="6"><div class="empty-state">尚無記錄</div></td></tr>`;
+  } catch (e) {
+    document.getElementById('log-tbody').innerHTML =
+      `<tr><td colspan="6"><div class="empty-state">載入失敗</div></td></tr>`;
+  }
+}
+
+// =============================================
+// Modal 控制
+// =============================================
+function openModal(id) { document.getElementById('modal-' + id).classList.add('open'); }
+function closeModal(id) { document.getElementById('modal-' + id).classList.remove('open'); }
+
+document.querySelectorAll('.overlay').forEach(el => {
+  el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
+});
+
+// =============================================
+// Toast 通知
+// =============================================
+function renderInventoryTable(list) {
+  const tbody = document.getElementById('inv-tbody');
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state">尚無庫存資料</div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = list.map(i => {
+    const low = Number(i.quantity) < Number(i.min_qty);
+    return `<tr>
+      <td><span class="badge badge-type">${i.module||'—'}</span></td>
+      <td><span class="tag">${i.category||'—'}</span></td>
+      <td><strong>${i.name}</strong></td>
+      <td style="color:var(--text3)">${i.spec||'—'}</td>
+      <td><strong style="color:${low?'var(--amber)':'var(--green)'}">${i.quantity}</strong></td>
+      <td style="color:var(--text3)">${i.min_qty}</td>
+      <td>${low ? '<span class="badge badge-low">低庫存</span>' : '<span class="badge badge-完成">正常</span>'}</td>
+      <td><button class="btn btn-sm" onclick="openInvAdjustFor('${i.name}','${i.module||''}','${i.category||''}','${i.spec||''}')">調整</button></td>
+    </tr>`;
+  }).join('');
+}
+
+let _invModule = '', _invCategory = '';
+
+function buildInvFilters() {
+  const modules = [...new Set(inventory.map(i => i.module).filter(Boolean))];
+  const categories = [...new Set(inventory.map(i => i.category).filter(Boolean))];
+
+  const mBar = document.getElementById('inv-module-filters');
+  if (mBar) {
+    mBar.innerHTML = `<div class="pill active" onclick="filterInv('module','',this)">全部模組</div>` +
+      modules.map(m => `<div class="pill" onclick="filterInv('module','${m}',this)">${m}</div>`).join('');
+  }
+  const cBar = document.getElementById('inv-category-filters');
+  if (cBar) {
+    cBar.innerHTML = `<div class="pill active" onclick="filterInv('category','',this)">全部類別</div>` +
+      categories.map(c => `<div class="pill" onclick="filterInv('category','${c}',this)">${c}</div>`).join('');
+  }
+
+  // 更新 modal 選單
+  const modSel = document.getElementById('inv-module-select');
+  const catSel = document.getElementById('inv-category-select');
+  if (modSel) modSel.innerHTML = modules.map(m => `<option>${m}</option>`).join('');
+  if (catSel) catSel.innerHTML = categories.map(c => `<option>${c}</option>`).join('');
+
+  // 從 settings 補充
+  if (window._settings) {
+    if (window._settings.inv_module && modSel) {
+      modSel.innerHTML = window._settings.inv_module.map(m => `<option>${m}</option>`).join('');
+      if (!mBar.children.length) {
+        mBar.innerHTML = `<div class="pill active" onclick="filterInv('module','',this)">全部模組</div>` +
+          window._settings.inv_module.map(m => `<div class="pill" onclick="filterInv('module','${m}',this)">${m}</div>`).join('');
+      }
+    }
+    if (window._settings.inv_category && catSel) {
+      catSel.innerHTML = window._settings.inv_category.map(c => `<option>${c}</option>`).join('');
+    }
+  }
+}
+
+function filterInv(type, val, el) {
+  if (type === 'module') {
+    document.querySelectorAll('#inv-module-filters .pill').forEach(p => p.classList.remove('active'));
+    _invModule = val;
+  } else {
+    document.querySelectorAll('#inv-category-filters .pill').forEach(p => p.classList.remove('active'));
+    _invCategory = val;
+  }
+  el.classList.add('active');
+  let list = inventory;
+  if (_invModule)   list = list.filter(i => i.module === _invModule);
+  if (_invCategory) list = list.filter(i => i.category === _invCategory);
+  renderInventoryTable(list);
+}
+
+function openInvAdjustFor(name, module, category, spec) {
+  openModal('inv-adjust');
+  setTimeout(() => {
+    const nameEl = document.getElementById('inv-name-input');
+    const modEl  = document.getElementById('inv-module-select');
+    const catEl  = document.getElementById('inv-category-select');
+    const specEl = document.getElementById('inv-spec-input');
+    if (nameEl) nameEl.value = name;
+    if (specEl) specEl.value = spec;
+    if (modEl)  { Array.from(modEl.options).forEach(o => o.selected = o.value === module); }
+    if (catEl)  { Array.from(catEl.options).forEach(o => o.selected = o.value === category); }
+  }, 100);
+}
+
+function toggleStoreField(rowId, val) {
+  const el = document.getElementById(rowId);
+  if (el) el.style.display = isStoreStatus(val) ? 'block' : 'none';
+}
+
+// 判斷是否為維修狀態（從 settings 讀取 repair_status，預設包含「維修」字樣）
+function isRepairStatus(status) {
+  const repairStatuses = (window._settings && window._settings.repair_status) || [];
+  if (repairStatuses.length > 0) return repairStatuses.includes(status);
+  return status.includes('維修'); // 預設：名稱含「維修」就算
+}
+
+function isStoreStatus(status) {
+  const storeStatuses = (window._settings && window._settings.store_status) || ['STORE'];
+  return storeStatuses.includes(status);
+}
+
+function toast(msg, type = 'success') {
+  const wrap = document.getElementById('toast-wrap');
+  const el = document.createElement('div');
+  el.className = `toast toast-${type}`;
+  el.textContent = type === 'success' ? '✓ ' + msg : '✕ ' + msg;
+  wrap.appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+</script>
+</body>
+</html>
