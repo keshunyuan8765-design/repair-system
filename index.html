@@ -822,12 +822,26 @@ async function loadDashboard() {
     machines = (mData.rows || []).reverse();
     inventory = iData.rows || [];
 
-    document.getElementById('s-total').textContent = dash.total || 0;
-    const repairCount = dash.byStatus ? Object.entries(dash.byStatus)
-      .filter(([k]) => isRepairStatus(k)).reduce((a,[,v]) => a + v, 0) : 0;
-    document.getElementById('s-inprogress').textContent = repairCount;
-    document.getElementById('s-done').textContent = (dash.byStatus && dash.byStatus['海運to美國']) || 0;
-    document.getElementById('s-lowstock').textContent = dash.lowStockCount || 0;
+    const lowStock = inventory.filter(i => Number(i.quantity) < Number(i.min_qty)).length;
+    const storeCount = machines.filter(m => isStoreStatus(m.status)).length;
+
+    document.getElementById('s-store').textContent = storeCount;
+    document.getElementById('s-lowstock').textContent = lowStock;
+
+    // 各狀態數量
+    const byStatus = dash.byStatus || {};
+    const statuses = window._statuses || Object.keys(byStatus);
+    const countsEl = document.getElementById('status-counts');
+    if (countsEl) {
+      countsEl.innerHTML = statuses.map(s => {
+        const count = byStatus[s] || 0;
+        const badgeCls = STATUS_BADGE[s] || 'badge-ok';
+        return `<div style="display:flex;align-items:center;gap:8px;background:var(--bg);border-radius:var(--radius);padding:8px 14px;min-width:140px">
+          <span class="badge ${badgeCls}">${s}</span>
+          <span style="font-size:20px;font-weight:700">${count}</span>
+        </div>`;
+      }).join('');
+    }
 
     renderMachineRows('dash-tbody', machines);
   } catch (e) {
